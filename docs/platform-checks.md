@@ -7,7 +7,7 @@ Current state: **release destination/device verification pending**. Preliminary 
 
 These preliminary observations are not release `platform-check` passes and do not cover both reference games or every OS. Public exports now include the MIT notice and have different hashes; verify your exact release artifacts with your own app destinations and accounts. Private account evidence is not distributed in this repository.
 
-For each release, configure real store URLs and build/verify in release mode. Keep dist/<game>/report.json with the files you upload. It identifies exact artifact hashes; rebuilding invalidates prior platform-check evidence if hashes change.
+For each release, configure the actual campaign/app destinations and build/verify in release mode. Unity additionally requires real store URLs in release configuration; Google-only builds do not read that file. Keep dist/<game>/report.json with the files you upload. It identifies exact artifact hashes; rebuilding invalidates prior platform-check evidence if hashes change.
 
 ## Destination preflight
 
@@ -29,7 +29,7 @@ Dashboard hosting supplies a test URL/QR code. Self-hosting is optional and outs
 
 ## Google
 
-Choose an **App install campaign**, configure the real app/destination routing, and upload its playable.zip. Check acceptance and the preview in both orientations, gameplay, timing and audio. A successful preview may block navigation intentionally. Local mocked CTA dispatch proves which SDK method our game calls; preview is not a live click/attribution test. Record upload results, preview observations, campaign OS/app configuration, and artifact hash. Do not launch a paid campaign as part of this checklist.
+Choose an **App install campaign**, configure the real app/destination routing, and upload `dist/<game>/google/playable.zip`. This same ZIP can be used across the intended Android and iOS campaigns; separately verify each campaign/app/OS and destination. Check acceptance and the preview in both orientations, gameplay, timing and audio. A successful preview may block navigation intentionally. Local mocked CTA dispatch proves which SDK method our game calls; preview is not a live click/attribution test. Record upload results, preview observations, campaign OS/app configuration, and artifact hash. Do not launch a paid campaign as part of this checklist.
 
 ## Recording destination evidence
 
@@ -50,4 +50,4 @@ Record the manual evidence with:
 npm.cmd run platform-check -- --game my-game --platform unity --os android --result pass --tester "Your name" --notes "Completed checks: app/OS match; expected destination <actual store URL>; observed <actual URL/screen>; CTA destination verified on <device/OS>; upload, gameplay and close-overlay results <details>"
 ```
 
-Use --platform google and/or --os ios for the other checks. Results are appended to platform-checks/<game>.json against the verified artifact hash. The command refuses preview builds and performs no upload. Build reports conservatively retain platformAcceptance: pending and releaseReady: false; the manual record is the evidence, not an automatic certification flag. Failed checks remain in the record and must be resolved against a new or corrected artifact.
+Use `--platform google --os android` or `--platform google --os ios` for Google campaign checks. Both select the same universal ZIP; the OS is recorded as `campaignOs`, not an artifact OS. Unity keeps `os` on its OS-specific artifact. Existing historical records are retained unchanged. Results are appended to platform-checks/<game>.json against the verified artifact hash. The command refuses preview builds and performs no upload. Build reports conservatively retain platformAcceptance: pending and releaseReady: false; the manual record is the evidence, not an automatic certification flag. Failed checks remain in the record and must be resolved against a new or corrected artifact.

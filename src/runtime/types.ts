@@ -16,11 +16,13 @@ export interface GameConfig {
   assets: Record<string, AssetSpec>;
 }
 export interface EmbeddedAsset { kind: 'image' | 'audio'; data: string }
-export interface RuntimeConfig extends Omit<GameConfig, 'assets'> {
+interface RuntimeBase extends Omit<GameConfig, 'assets'> {
   assets: Record<string, EmbeddedAsset>;
-  storeUrl: string;
-  targetOs: TargetOs;
 }
+export type RuntimeConfig = RuntimeBase & (
+  | { platform: 'unity'; storeUrl: string; targetOs: TargetOs }
+  | { platform: 'google' | 'browser'; storeUrl?: never; targetOs?: never }
+);
 export interface GameContext {
   config: RuntimeConfig;
   layout: Layout;
@@ -41,7 +43,7 @@ export interface PlayableGame {
 export type CreateGame = (context: GameContext) => PlayableGame;
 export interface HostBridge {
   start: (visibility: (visible: boolean) => void, resize: () => void, status: (message: string) => void) => void;
-  exit: (storeUrl: string) => boolean;
+  exit: () => boolean;
   dispose: () => void;
 }
 export interface Mraid {

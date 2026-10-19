@@ -1,4 +1,4 @@
-import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, mkdir, writeFile, lstat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { build as bundle } from 'esbuild';
@@ -6,17 +6,20 @@ import { transformAsync } from '@babel/core';
 import { minify as minifyJs } from 'terser';
 import { minify as minifyHtml } from 'html-minifier-terser';
 import { zipSync, strToU8 } from 'fflate';
-import type { EmbeddedAsset, Platform, RuntimeConfig, TargetOs } from '../src/runtime/types';
-import { ROOT, EXIT_API, loadConfig, resolveGameAsset, validateStoreUrl } from './config';
+import type { EmbeddedAsset, RuntimeConfig, TargetOs } from '../src/runtime/types';
+import { ROOT, EXIT_API, loadConfig, resolveGameAsset, validateStoreUrl, validId } from './config';
 import { auditGame } from './source-policy';
 import { validateHtml, validateZip } from './validate';
 import { PREVIEW_STORE_URLS } from './constants';
 
 export type BuildMode = 'preview' | 'release';
+export type BuildPlatform = 'all' | 'unity' | 'google';
+export type CompileTarget = { platform: 'unity'; os: TargetOs; storeUrl: string } | { platform: 'google' | 'browser'; os?: never; storeUrl?: never };
 export interface AssetContribution { id: string; sourceBytes: number; embeddedBytes: number }
-export interface ArtifactRecord { platform: 'unity' | 'google'; os: TargetOs; path: string; bytes: number; sha256: string; checks: string[]; assets: AssetContribution[] }
+export type ArtifactTarget = { platform: 'unity'; os: TargetOs } | { platform: 'google'; os?: never };
+export type ArtifactRecord = ArtifactTarget & { path: string; bytes: number; sha256: string; checks: string[]; assets: AssetContribution[] };
 export interface BuildReport {
-  schemaVersion: 1;
+  schemaVersion: 2;
   game: string;
   mode: BuildMode;
   createdAt: string;
@@ -28,7 +31,8 @@ export interface BuildReport {
   artifacts: ArtifactRecord[];
 }
 export function sha256(bytes: Uint8Array | string): string { return createHash('sha256').update(bytes).digest('hex'); }
-export async function compileGame(id: string, platform: Platform, os: TargetOs, storeUrl = ''): Promise<{ html: string; assets: AssetContribution[]; sourceSha256: string }> {
+export async function compileGame(id: string, target: CompileTarget): Promise<{ html: string; assets: AssetContribution[]; sourceSha256: string }> {
+  const { platform } = target;
   const game = await loadConfig(id);
   await auditGame(id);
   const assets: Record<string, EmbeddedAsset> = {};
@@ -46,9 +50,12 @@ export async function compileGame(id: string, platform: Platform, os: TargetOs, 
     assets[key] = { kind: spec.kind, data };
     contributions.push({ id: key, sourceBytes: bytes.length, embeddedBytes: Buffer.byteLength(data) });
   }
-  const config: RuntimeConfig = { ...game, assets, storeUrl, targetOs: os };
+  const config: RuntimeConfig = target.platform === 'unity'
+    ? { ...game, assets, platform: 'unity', storeUrl: target.storeUrl, targetOs: target.os }
+    : { ...game, assets, platform: target.platform };
+  const hostArguments = target.platform === 'unity' ? JSON.stringify(target.storeUrl) : '';
   const bundled = await bundle({
-    stdin: { contents: `import { createGame } from './games/${id}/game.ts'; import { boot } from './src/runtime/boot.ts'; import { createHost } from './src/runtime/hosts/${platform}.ts'; boot(createGame, ${JSON.stringify(config)}, createHost());`, resolveDir: ROOT, loader: 'ts' },
+    stdin: { contents: `import { createGame } from './games/${id}/game.ts'; import { boot } from './src/runtime/boot.ts'; import { createHost } from './src/runtime/hosts/${platform}.ts'; boot(createGame, ${JSON.stringify(config)}, createHost(${hostArguments}));`, resolveDir: ROOT, loader: 'ts' },
     bundle: true, write: false, format: 'iife', platform: 'browser', target: 'es2015', treeShaking: true, metafile: true, legalComments: 'none', logLevel: 'silent'
   });
   for (const input of Object.keys(bundled.metafile.inputs)) {
@@ -76,45 +83,104 @@ export async function compileGame(id: string, platform: Platform, os: TargetOs, 
   }
   return { html, assets: contributions, sourceSha256: sha256(source) };
 }
-export async function buildGame(id: string, mode: BuildMode, systems: TargetOs[], urls: Partial<Record<TargetOs, string>>): Promise<BuildReport> {
-  if (mode === 'release') systems.forEach(os => validateStoreUrl(os, urls[os] || ''));
-  const artifacts: ArtifactRecord[] = [];
-  const sourceHashes: string[] = [];
-  for (const os of systems) {
-    for (const platform of ['unity', 'google'] as const) {
-      const built = await compileGame(id, platform, os, mode === 'release' ? urls[os] : PREVIEW_STORE_URLS[os]);
-      const bytes = platform === 'google' ? zipSync({ 'index.html': [strToU8(built.html), { mtime: new Date(1980, 0, 2, 12) }] }, { level: 9 }) : strToU8(built.html);
-      const validation = platform === 'google' ? validateZip(bytes) : validateHtml(bytes, platform);
-      if (!validation.ok) throw new Error(validation.errors.join('\n'));
-      const relative = `dist/${id}/${os}/${platform}/${platform === 'unity' ? 'index.html' : 'playable.zip'}`;
-      const destination = path.join(ROOT, relative);
-      await mkdir(path.dirname(destination), { recursive: true }); await writeFile(destination, bytes);
-      sourceHashes.push(built.sourceSha256);
-      artifacts.push({ platform, os, path: relative, bytes: bytes.length, sha256: sha256(bytes), checks: validation.checks, assets: built.assets });
+function artifactPath(id: string, target: ArtifactTarget): string {
+  return target.platform === 'google' ? `dist/${id}/google/playable.zip` : `dist/${id}/${target.os}/unity/index.html`;
+}
+function artifactBytes(html: string, platform: 'unity' | 'google'): Uint8Array {
+  return platform === 'unity' ? strToU8(html) : zipSync({ 'index.html': [strToU8(html), { mtime: new Date(1980, 0, 2, 12) }] }, { level: 9 });
+}
+// Check each existing component, including Windows junctions, before writing or removing generated files.
+async function outputPath(relative: string): Promise<string> {
+  const destination = path.resolve(ROOT, relative);
+  const inside = path.relative(ROOT, destination);
+  if (!inside.startsWith('dist' + path.sep) || path.isAbsolute(inside)) throw new Error('Output must stay inside dist.');
+  let current = ROOT;
+  for (const part of inside.split(path.sep)) {
+    current = path.join(current, part);
+    try {
+      if ((await lstat(current)).isSymbolicLink()) throw new Error('Refusing symlink traversal in generated output: ' + relative);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') break;
+      throw error;
     }
   }
-  const report: BuildReport = { schemaVersion: 1, game: id, mode, createdAt: new Date().toISOString(), sourceSha256: sha256(sourceHashes.join('')), storeUrls: Object.fromEntries(systems.map(os => [os, mode === 'release' ? urls[os] : PREVIEW_STORE_URLS[os]])), localValidation: 'passed', platformAcceptance: 'pending', releaseReady: false, artifacts };
-  await writeFile(path.join(ROOT, 'dist', id, 'report.json'), JSON.stringify(report, null, 2) + '\n');
+  return destination;
+}
+async function obsoleteGoogleFiles(id: string): Promise<string[]> {
+  const files: string[] = [];
+  for (const os of ['android', 'ios']) {
+    const file = await outputPath(`dist/${id}/${os}/google/playable.zip`);
+    try {
+      if (!(await lstat(file)).isFile()) throw new Error('Obsolete Google output is not a regular file: ' + file);
+      files.push(file);
+    } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+  }
+  return files;
+}
+export async function buildGame(id: string, mode: BuildMode, systems: TargetOs[], urls: Partial<Record<TargetOs, string>>, platform: BuildPlatform = 'all'): Promise<BuildReport> {
+  validId(id);
+  if (!['preview', 'release'].includes(mode) || !['all', 'unity', 'google'].includes(platform)) throw new Error('Invalid build mode or platform.');
+  if (platform === 'google' && systems.length) throw new Error('Google exports are universal; do not select an OS.');
+  if (platform !== 'google' && (!systems.length || systems.some(os => !['android', 'ios'].includes(os)) || new Set(systems).size !== systems.length)) throw new Error('Select unique Unity operating systems: android,ios.');
+  if (mode === 'release') systems.forEach(os => validateStoreUrl(os, urls[os] || ''));
+  const storeUrls = Object.fromEntries(systems.map(os => [os, mode === 'release' ? urls[os]! : PREVIEW_STORE_URLS[os]]));
+  const targets: ArtifactTarget[] = systems.map(os => ({ platform: 'unity', os }));
+  if (platform !== 'unity') targets.push({ platform: 'google' });
+  const legacy = platform !== 'unity' ? await obsoleteGoogleFiles(id) : [];
+  const artifacts: ArtifactRecord[] = [];
+  const pending: { destination: string; bytes: Uint8Array }[] = [];
+  const sourceHashes: string[] = [];
+  for (const target of targets) {
+    const built = await compileGame(id, target.platform === 'unity' ? { ...target, storeUrl: storeUrls[target.os] } : target);
+    const bytes = artifactBytes(built.html, target.platform);
+    const validation = target.platform === 'google' ? validateZip(bytes) : validateHtml(bytes, 'unity');
+    if (!validation.ok) throw new Error(validation.errors.join('\n'));
+    const relative = artifactPath(id, target);
+    pending.push({ destination: await outputPath(relative), bytes });
+    sourceHashes.push(built.sourceSha256);
+    artifacts.push({ ...target, path: relative, bytes: bytes.length, sha256: sha256(bytes), checks: validation.checks, assets: built.assets });
+  }
+  const report: BuildReport = { schemaVersion: 2, game: id, mode, createdAt: new Date().toISOString(), sourceSha256: sha256(sourceHashes.join('')), storeUrls, localValidation: 'passed', platformAcceptance: 'pending', releaseReady: false, artifacts };
+  const reportPath = await outputPath(`dist/${id}/report.json`);
+  // Compile and validate every selected target before replacing any deliverable.
+  for (const item of pending) { await mkdir(path.dirname(item.destination), { recursive: true }); await writeFile(item.destination, item.bytes); }
+  for (const file of legacy) { await outputPath(path.relative(ROOT, file)); await unlink(file); }
+  await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n');
   return report;
 }
 export async function verifyGame(id: string): Promise<BuildReport> {
   const config = await loadConfig(id);
-  const report = JSON.parse(await readFile(path.join(ROOT, 'dist', config.id, 'report.json'), 'utf8')) as BuildReport;
-  if (report.game !== id || report.schemaVersion !== 1 || !report.artifacts?.length || !['preview', 'release'].includes(report.mode)) throw new Error('Invalid build report.');
+  const report = JSON.parse(await readFile(await outputPath(`dist/${config.id}/report.json`), 'utf8')) as BuildReport;
+  if (report.schemaVersion !== 2) throw new Error('Unsupported build report schema. Rebuild this game for universal Google exports (schema 2).');
+  if (report.game !== id || !Array.isArray(report.artifacts) || !report.artifacts.length || !['preview', 'release'].includes(report.mode) || !report.storeUrls || typeof report.storeUrls !== 'object' || Array.isArray(report.storeUrls)) throw new Error('Invalid build report.');
+  if (report.localValidation !== 'passed' || report.platformAcceptance !== 'pending' || report.releaseReady !== false) throw new Error('Invalid build report readiness fields.');
   const sources: string[] = [];
+  const seen = new Set<string>();
+  const systems = new Set<string>();
+  // Validate the entire target list before reading artifacts or compiling sources.
   for (const artifact of report.artifacts) {
-    if (!['unity', 'google'].includes(artifact.platform) || !['android', 'ios'].includes(artifact.os)) throw new Error('Invalid artifact target.');
-    const expected = `dist/${id}/${artifact.os}/${artifact.platform}/${artifact.platform === 'unity' ? 'index.html' : 'playable.zip'}`;
+    if (!artifact || !['unity', 'google'].includes(artifact.platform) || (artifact.platform === 'unity' ? !['android', 'ios'].includes(artifact.os) : 'os' in artifact)) throw new Error('Invalid artifact target.');
+    const expected = artifactPath(id, artifact);
     if (artifact.path !== expected) throw new Error('Invalid artifact path.');
-    if (report.mode === 'release') validateStoreUrl(artifact.os, report.storeUrls[artifact.os] || '');
-    const bytes = await readFile(path.join(ROOT, expected));
+    if (seen.has(expected)) throw new Error('Duplicate artifact target.');
+    seen.add(expected);
+    if (artifact.platform === 'unity') {
+      systems.add(artifact.os);
+      const url = report.storeUrls[artifact.os];
+      if (report.mode === 'release') validateStoreUrl(artifact.os, url || '');
+      else if (url !== PREVIEW_STORE_URLS[artifact.os]) throw new Error('Invalid preview destination.');
+    }
+  }
+  if (Object.keys(report.storeUrls).some(os => !systems.has(os))) throw new Error('Store URLs are only allowed for selected Unity artifacts.');
+  for (const artifact of report.artifacts) {
+    const bytes = await readFile(await outputPath(artifact.path));
     if (sha256(bytes) !== artifact.sha256 || bytes.length !== artifact.bytes) throw new Error('Artifact changed after build: ' + artifact.path);
     const validation = artifact.platform === 'google' ? validateZip(bytes) : validateHtml(bytes, 'unity');
     if (!validation.ok) throw new Error(validation.errors.join('\n'));
-    const compiled = await compileGame(id, artifact.platform, artifact.os, report.storeUrls[artifact.os] || '');
+    const target: CompileTarget = artifact.platform === 'unity' ? { platform: 'unity', os: artifact.os, storeUrl: report.storeUrls[artifact.os]! } : { platform: 'google' };
+    const compiled = await compileGame(id, target);
     sources.push(compiled.sourceSha256);
-    const expectedBytes = artifact.platform === 'unity' ? strToU8(compiled.html) : zipSync({ 'index.html': [strToU8(compiled.html), { mtime: new Date(1980, 0, 2, 12) }] }, { level: 9 });
-    if (sha256(expectedBytes) !== artifact.sha256) throw new Error('Artifact does not match current sources: ' + artifact.path);
+    if (sha256(artifactBytes(compiled.html, artifact.platform)) !== artifact.sha256) throw new Error('Artifact does not match current sources: ' + artifact.path);
   }
   if (sha256(sources.join('')) !== report.sourceSha256) throw new Error('Sources changed since build; rebuild before verification.');
   return report;

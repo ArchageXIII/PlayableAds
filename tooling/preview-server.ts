@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { createServer } from 'vite';
-import { compileGame, verifyGame } from './build';
+import { compileGame, verifyGame, type CompileTarget } from './build';
 import { listGames, loadConfig, ROOT } from './config';
 import type { Platform, TargetOs } from '../src/runtime/types';
 import { PREVIEW_STORE_URLS } from './constants';
@@ -26,9 +26,16 @@ export async function startPreview(port: number, selectedGame?: string) {
           const game = url.searchParams.get('game') || '';
           if (url.pathname === '/api/export') {
             const platform = url.searchParams.get('platform') as Platform;
-            const os = (url.searchParams.get('os') || 'android') as TargetOs;
-            if (!['unity', 'google', 'browser'].includes(platform) || !['android', 'ios'].includes(os)) throw new Error('Invalid preview target.');
-            const built = await compileGame(game, platform, os, PREVIEW_STORE_URLS[os]);
+            if (!['unity', 'google', 'browser'].includes(platform)) throw new Error('Invalid preview target.');
+            if (url.searchParams.has('storeUrl')) throw new Error('Preview store URLs are supplied only by the Unity preview profile.');
+            if (platform !== 'unity' && url.searchParams.has('os')) throw new Error('Google and Browser previews are universal; omit os.');
+            let target: CompileTarget;
+            if (platform === 'unity') {
+              const os = (url.searchParams.get('os') ?? 'android') as TargetOs;
+              if (!['android', 'ios'].includes(os)) throw new Error('Invalid Unity preview OS.');
+              target = { platform, os, storeUrl: PREVIEW_STORE_URLS[os] };
+            } else target = { platform };
+            const built = await compileGame(game, target);
             res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(built.html); return;
           }
           if (url.pathname === '/api/report') { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(await verifyGame(game))); return; }

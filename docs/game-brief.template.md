@@ -40,8 +40,8 @@ The current runtime opens the destination only on a subsequent explicit CTA gest
 - Campaign objective (current shared profile: app installs):
 - Creative languages and corresponding campaign languages:
 - Intended destination per platform/OS (default store listing / custom store listing / specific in-app content / external website):
-- Real Google Play URL (required for Android release; never invent it):
-- Real App Store URL (required for iOS release; never invent it):
+- Real Google Play URL (required for Unity Android release; never invent it):
+- Real App Store URL (required for Unity iOS release; never invent it):
 - Any custom listing or in-app destination requested, including its URL/identifier:
 - Google advertised app and OS:
 - Google campaign and ad group (name/ID when known; pending during authoring is fine):
@@ -61,3 +61,5 @@ Unity embeds the configured store URL; Google routes the CTA through its campaig
 - Brief versus campaign app/OS/destination comparison:
 - Expected destination versus observed CTA result (intercepted / preview blocked / destination verified / failed / pending):
 - Platform checks and artifact hashes (pending until performed):
+
+Google uses one universal ZIP for both campaign operating systems; record the real app and destination per campaign even though no Unity store configuration is required for a Google-only build.

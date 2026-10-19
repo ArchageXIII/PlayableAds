@@ -22,3 +22,10 @@ Use the checkout's README as the command reference. Check Git, Node and npm firs
 Build reference previews explicitly with `npm run build -- --all --mode preview`, then `npm run verify -- --all`. Build defaults to release, so never omit preview mode when real app configuration is pending. Start the lab using the checkout's Windows `start.ps1` or its documented development command. Report the actual URL and how to stop it; reuse a healthy project server and leave unrelated port owners alone.
 
 Do not invent app URLs or create release credentials during onboarding. Unknown app, destination and campaign details remain **pending** in game briefs. Finish with the chosen project path, checks actually run, preview URL and unresolved prerequisites. Installing the plugin or passing local checks does not establish platform acceptance.
+
+
+## Universal Google exports (toolkit capability check)
+
+Before using platform-selection flags, inspect the selected checkout's README and `tooling/cli.ts` for `--platform google|unity|all` build support and its report schema. An installed plugin update does not upgrade the project. On an older checkout, use its documented commands and explain that universal exports require a reviewed toolkit upgrade; do not silently pull or modify it.
+
+On a compatible checkout, Google builds use `--platform google` without `--os` and produce one `dist/<id>/google/playable.zip`. Google-only release builds do not read Unity store configuration. Keep actual campaign/app/OS/destination checks pending until verified. Unity builds use `--platform unity` with OS-specific URLs; the default `--platform all` retains combined builds. Use `--mode preview` for preview work. `verify --game <id>` validates the entire latest schema-2 report and takes no build-selection flags. A rebuild migrates older reports and removes only the known obsolete per-OS Google ZIPs. Manual Google checks still require `--os` as campaign context, saved as `campaignOs` against the universal ZIP hash.

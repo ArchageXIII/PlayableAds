@@ -20,3 +20,5 @@ Audience: general casual-game players. No real advertised app is configured. Pre
 - Local CTA observation: intercepted SDK dispatch; no real destination verified.
 - Upload checks: **pending** for this game; the [toolkit's upload tests](../../docs/platform-checks.md) do not establish acceptance of this export.
 - Outstanding release checks: supply real app/store configuration, compare the brief with campaign app/OS/destination, then record expected versus observed destination and device results against exact artifact hashes.
+
+Google export: one universal ZIP shared across Android/iOS campaigns; actual app/OS/destination and device verification remain **pending** per campaign. Unity still requires OS-specific release store URLs.

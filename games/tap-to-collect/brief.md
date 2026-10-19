@@ -20,3 +20,5 @@ Audience: general casual-game players. No real release app is configured. Previe
 - Local CTA observation: intercepted SDK dispatch; no real destination verified.
 - Upload checks: preliminary Google upload/preview/save observed on 6 October 2026. Unity upload was maintainer-reported, without independent verification of its exact artifact hash. These observations do not qualify the public rebuild for release. See [platform-check status](../../docs/platform-checks.md).
 - Outstanding release checks: supply real app/store configuration, compare the brief with campaign app/OS/destination, then record expected versus observed destination and device results against exact artifact hashes.
+
+Google export: one universal ZIP shared across Android/iOS campaigns; actual app/OS/destination and device verification remain **pending** per campaign. Unity still requires OS-specific release store URLs.

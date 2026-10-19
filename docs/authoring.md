@@ -9,7 +9,7 @@ Start with the [brief template](game-brief.template.md). Reuse information from 
 | Unity | Put the real OS-specific store URLs in `release.config.json` (`storeUrls.android` / `storeUrls.ios`), or the file passed with `--config`. The exporter embeds the URL and the adapter calls `mraid.open(storeUrl)`. Rebuild and reverify after changing it. Unity requires a direct app-store destination. |
 | Google | Configure the advertised app and destination routing in Google Ads. The adapter calls `ExitApi.exit()` with no URL; it does not use the shared runtime's store URL to choose the destination. Campaign-only routing changes do not require changing game code, but do require another destination check. |
 
-Sources reviewed 6 October 2026: [Unity playable specifications](https://docs.unity.com/en-us/user-acquisition/creatives/creative-specifications) and [Google playable specifications](https://support.google.com/google-ads/answer/9981650?hl=en).
+Destination sources reviewed 6 October 2026; Google export integration rechecked 19 October 2026: [Unity playable specifications](https://docs.unity.com/en-us/user-acquisition/creatives/creative-specifications) and [Google playable specifications](https://support.google.com/google-ads/answer/9981650?hl=en).
 
 For custom store listings, record the intended listing and verify the applicable platform/campaign setup. For Google in-app destinations, record the deep/deferred link and whether the app handles it; configure supported routing in Google Ads and test the appropriate installed/not-installed journey. See [Google's deep-link setup](https://support.google.com/google-ads/answer/10024200?hl=en). Recording a URL does not establish that a particular campaign or placement supports that route. The current Google profile targets App install campaigns; HTML5 playables are not eligible for App engagement or pre-registration campaigns under the linked specifications.
 
@@ -18,6 +18,12 @@ If the user requests an external website destination, record that intent and sco
 The current CTA appears on the end card after success or failure, following gameplay interaction. Both outcomes require a later explicit CTA gesture to request navigation. Capture requests for different timing, but review them against the shared runtime and platform rules before implementation. Keep CTA text aligned with the actual destination and creative language; the current template uses English, and recording another language does not automatically translate the game or change its HTML language metadata.
 
 Before release, compare the completed brief, supplied release configuration and actual campaign settings using the [platform checklist](platform-checks.md). Existing URL validation checks syntax and known placeholders; it does not verify app ownership, campaign routing or the destination reached on a device. Campaign notes remain in the brief/check evidence, while supported store URLs remain in the existing release config.
+
+## Export selection
+
+Use `build --platform google --mode preview` for one universal Google ZIP, or `build --platform unity --os android,ios --mode preview` for Unity HTMLs. Include `--game <id>` (or `--all`) with these commands. The default `--platform all` builds both profiles, with `--os` selecting Unity targets only. Google-only builds reject `--os` and do not read Unity release configuration, even in release mode.
+
+Google's output is `dist/<id>/google/playable.zip`; Unity's is `dist/<id>/<os>/unity/index.html`. Schema-2 reports describe only the latest build selection. Rebuild schema-1 reports. Verification accepts `--game`/`--all`, not build-selection flags. Google preview/release bytes may be identical; campaign setup and actual destination checks remain separate from build mode.
 
 ## Runtime authoring
 
@@ -35,7 +41,7 @@ Use `context.layout.width/height` for positions and `context.images.<id>` for sp
 
 Use `context.setProgress(text)` for the HUD, `context.playSound()` for a short synthesized cue or `context.playSound(assetId)` for a declared WAV, and `context.complete(outcome)` for the end card. The runtime owns the time limit and automatic failure. Time starts on the first gameplay gesture; it freezes when hidden. A clamped dt prevents large jumps on a slow frame. Completion stops simulation and displays CTA/replay controls; no navigation happens until a later trusted CTA gesture.
 
-Config contains id, title, instructions, durationSeconds (3–120), successText, failureText, ctaText, accent (six-digit hex), and assets keyed by stable IDs. Each asset has `path` and `kind: image|audio`. Paths stay inside the game directory; escaping paths, symlinks, remote URLs and unsupported formats fail builds. Audio decoding/playback is optional and must not stop gameplay.
+Game config contains id, title, instructions, durationSeconds (3–120), successText, failureText, ctaText, accent (six-digit hex), and assets keyed by stable IDs. Each asset has `path` and `kind: image|audio`. Paths stay inside the game directory; escaping paths, symlinks, remote URLs and unsupported formats fail builds. Audio decoding/playback is optional and must not stop gameplay.
 
 The image loader sets anonymous cross-origin mode before assigning data URIs. It waits for artwork before enabling gameplay. Missing/corrupt artwork produces an inactive error state. Current image support is PNG and JPEG; current audio support is embedded PCM WAV. The build reports source bytes and embedded bytes, so you can identify oversized assets before release.
 
@@ -44,3 +50,5 @@ New games are copied from a reference template. Replace its mechanic/config and 
 The default 48 CSS-pixel top reserve is a conservative layout choice, **not a platform-specified safe-zone guarantee**. Device insets add to it where supported. Inspect close overlays and actual devices; adjust shared layout safely if necessary. Legacy CSS/API fallbacks are intentional. Avoid APIs that require unbundled polyfills. ES5 syntax checks do not validate every old browser API.
 
 Source auditing, exported AST/HTML checks and network tests are complementary guardrails, not a security sandbox or an exhaustive static proof. Keep generated game code reviewable, and test paths that could trigger side effects.
+
+Runtime configuration is platform-specific: Unity has `platform`, `targetOs` and `storeUrl`; Google and Browser have `platform` without either destination field. Games should use shared gameplay fields and completion services. Host adapters now expose parameterless `exit()`; Unity binds its URL when its adapter is constructed. Custom runtime integrations using the previous interface need updating.

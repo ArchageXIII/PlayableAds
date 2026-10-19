@@ -1,7 +1,7 @@
 import type { HostBridge } from '../types';
 import { observeMraid } from './mraid';
 
-export function createHost(): HostBridge {
+export function createHost(storeUrl: string): HostBridge {
   let timer: number | undefined;
   let unsubscribe = function (): void {};
   let stopped = false;
@@ -25,7 +25,7 @@ export function createHost(): HostBridge {
       }
       connect();
     },
-    exit: function (storeUrl): boolean {
+    exit: function (): boolean {
       if (!ready || !storeUrl || !window.mraid || !window.mraid.isViewable()) return false;
       try { window.mraid.open(storeUrl); return true; } catch (_error) { return false; }
     },

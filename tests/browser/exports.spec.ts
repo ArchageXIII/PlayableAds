@@ -7,7 +7,7 @@ import { EXIT_API, PREVIEW_STORE_URLS } from '../../tooling/constants';
 
 type HostOptions = { ready?: boolean; visible?: boolean; missing?: boolean; late?: boolean; brokenAudio?: boolean; noPointer?: boolean; brokenArtwork?: boolean };
 async function mount(page: Page, game: string, platform: 'unity' | 'google', width = 360, height = 640, options: HostOptions = {}, os = 'android'): Promise<Frame> {
-  const artifact = path.join(ROOT, 'dist', game, os, platform, platform === 'unity' ? 'index.html' : 'playable.zip');
+  const artifact = platform === 'unity' ? path.join(ROOT, 'dist', game, os, 'unity/index.html') : path.join(ROOT, 'dist', game, 'google/playable.zip');
   const bytes = await readFile(artifact);
   let html = platform === 'unity' ? bytes.toString('utf8') : strFromU8(unzipSync(bytes)['index.html']);
   await page.setViewportSize({ width: 1100, height: 900 });
@@ -17,7 +17,7 @@ async function mount(page: Page, game: string, platform: 'unity' | 'google', wid
   page.on('request', request => { if (!request.url().startsWith('data:')) requests.push(request.url()); });
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/*', async route => {
-    if (route.request().url() === EXIT_API) await route.fulfill({ contentType: 'application/javascript', body: options.missing ? '' : "window.ExitApi={exit:function(){parent.postMessage({qa:'exit',value:'campaign'},'*')}};" });
+    if (route.request().url() === EXIT_API) await route.fulfill({ contentType: 'application/javascript', body: options.missing ? '' : "window.ExitApi={exit:function(){if(arguments.length!==0)throw new Error('ExitApi expects no arguments');parent.postMessage({qa:'exit',value:'campaign'},'*')}};" });
     else await route.abort();
   });
   if (options.brokenArtwork) html = html.replace(/data:image\/png;base64,[A-Za-z0-9+/=]+/g, 'data:image/png;base64,AAAA');

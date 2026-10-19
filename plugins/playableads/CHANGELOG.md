@@ -1,5 +1,11 @@
 # PlayableAds plugin changelog
 
+## 0.2.0
+
+- Universal Google ZIP guidance, platform-selective builds and schema-2 report migration.
+- Google-only release builds no longer require Unity store configuration; campaign/device verification remains required.
+- Inspect checkout capabilities before using new flags; never silently upgrade an older project.
+
 ## 0.1.0
 
 - Initial optional plugin with setup, authoring and export-verification skills.

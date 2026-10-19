@@ -133,7 +133,7 @@ export function boot(createGame: CreateGame, config: RuntimeConfig, host: HostBr
   };
   install.onclick = function (event): void {
     if (!event.isTrusted || !active() || !context.hasInteracted || !finished) return;
-    if (!host.exit(config.storeUrl)) {
+    if (!host.exit()) {
       outcomeMessage = 'Install is unavailable in this environment';
       status.textContent = outcomeMessage; status.hidden = false;
     }

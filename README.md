@@ -2,7 +2,7 @@
 
 [![Validate playable toolkit](https://github.com/ArchageXIII/PlayableAds/actions/workflows/ci.yml/badge.svg)](https://github.com/ArchageXIII/PlayableAds/actions/workflows/ci.yml)
 
-A small Canvas 2D toolkit for authoring playable ads directly or with a coding agent. Write gameplay once; export a single Unity HTML file and a Google App campaign ZIP for Android and/or iOS. 3D and WebGL are not supported.
+A small Canvas 2D toolkit for authoring playable ads directly or with a coding agent. Write gameplay once; export OS-specific Unity HTML files and one Google App campaign ZIP shared across Android and iOS. 3D and WebGL are not supported.
 
 Source: [ArchageXIII/PlayableAds](https://github.com/ArchageXIII/PlayableAds). Clone the repository to author games locally; no npm package or hosted service is required. Coding agents that can edit files and run local commands can follow the included briefs and instructions, and developers can also edit the TypeScript directly. Point your agent to [AGENTS.md](AGENTS.md) and the [authoring guide](docs/authoring.md); automatic instruction discovery varies between agents.
 
@@ -44,7 +44,7 @@ npm run dev
 
 Playwright's Linux system-dependency installation may request administrator access. In later examples, use `npm` instead of `npm.cmd` on macOS/Linux. Stop a foreground server with Ctrl+C; the background start/stop scripts below are Windows-only.
 
-Open **http://127.0.0.1:5173/**. Choose Pocket treasure or Shape shuffle, a host, and an OS. SDK readiness, visibility, viewport sizes, audio status and intercepted install calls are available in the lab. An opaque-origin, scripts-only iframe models Google's sandbox. The browser host is development-only. Reload to reset host/game state.
+Open **http://127.0.0.1:5173/**. Choose Pocket treasure or Shape shuffle and a host. The OS selector applies only to Unity; Google and Browser previews are universal. SDK readiness, visibility, viewport sizes, audio status and intercepted install calls are available in the lab. An opaque-origin, scripts-only iframe models Google's sandbox. The browser host is development-only. Reload to reset host/game state.
 
 On Windows, after dependencies are installed, start and stop the lab with no arguments:
 
@@ -87,24 +87,36 @@ npm.cmd run verify -- --game my-game
 npm.cmd run check
 ```
 
-Each selected OS produces:
+A combined build for both Unity operating systems produces three artifacts:
 
 - `dist/<game>/<os>/unity/index.html`
-- `dist/<game>/<os>/google/playable.zip`, containing only `index.html`
+- `dist/<game>/google/playable.zip`, shared across Google Android/iOS campaigns and containing only `index.html`
 - `dist/<game>/report.json`, outside upload bundles
 
 Reports include sizes, asset contributions, SHA-256 hashes, source fingerprints, build mode, local checks, and pending platform acceptance. Verification rechecks the files and reproduces their bytes from current sources; stale or edited artifacts fail. The 4,500,000-byte ceiling applies to HTML as well as ZIP output. This is our internal budget, below published platform limits.
 
-**Preview builds use intentionally invalid sample app destinations for intercepted local CTA testing. They do not qualify as release builds or platform-approved ads.** Google uses campaign destination routing; the sample destination is used by the Unity mock. Supply your own app destinations before preparing a release.
+**Unity preview builds use intentionally invalid sample destinations for intercepted local CTA testing.** Google embeds no OS or destination; its preview and release ZIPs can have identical bytes, while report modes remain distinct. Neither local validation nor release mode establishes campaign routing or platform acceptance.
 
-For release, copy `release.config.example.json` to the ignored `release.config.json`, replace sample values with your app's actual URLs, then run:
+For Unity or combined release builds, copy `release.config.example.json` to the ignored `release.config.json`, replace sample values with your app's actual URLs, then run:
 
 ```powershell
 npm.cmd run build -- --game my-game --os android,ios
 npm.cmd run verify -- --game my-game
 ```
 
-Build defaults to **release** and fails without real-format, non-placeholder store URLs. Omit `--os` to build the operating systems present in your release configuration. URL checks validate format and reject known placeholders; the manual platform check must establish that the app exists and matches the campaign. Configuration can be shared or supplied with `--config path/to/file.json`. Google destination setup is performed in Google Ads, never through a direct link in gameplay.
+Build defaults to **release** and `--platform all`. Unity and combined release builds fail without real-format, non-placeholder Unity store URLs. Omit `--os` to build the Unity operating systems present in your release configuration. URL checks validate format and reject known placeholders; the manual platform check must establish that the app exists and matches the campaign. Configuration can be shared or supplied with `--config path/to/file.json`. Google destination setup is performed in Google Ads, never through a direct link in gameplay.
+
+For Google-only builds, Unity configuration is not read or required:
+
+```powershell
+npm.cmd run build -- --game my-game --platform google --mode preview
+npm.cmd run build -- --game my-game --platform google --mode release
+npm.cmd run verify -- --game my-game
+```
+
+Do not pass `--os` to Google-only builds: choose the advertised app, OS and destination in Google Ads. For Unity-only builds use `--platform unity --os android,ios`; for an explicit combined preview use `--platform all --os android,ios --mode preview`. `verify` checks every artifact in the latest report and rejects `--platform`, `--os`, `--mode` and `--config`.
+
+Reports now use **schema 2**. Rebuild older reports; old per-OS Google ZIPs are obsolete. A successful Google build removes only `dist/<game>/android/google/playable.zip` and `dist/<game>/ios/google/playable.zip`, refusing symlink traversal and retaining other files. Each report describes the latest selected build, not a merge with previous outputs. Unity-only or Google-only builds preserve other platform files, but those files are not current deliverables unless included in the latest report.
 
 Unity embeds the configured store URL and calls `mraid.open(url)`; changing it requires a rebuild. Google calls `ExitApi.exit()` without supplying a URL, so campaign routing is checked separately. Custom listings and in-app destinations require platform setup; Google deep links also require app support. Website destinations need a separately scoped campaign/export approach. Complete the brief's destination checklist and record actual CTA observations before release; these authoring questions add no config fields or build gates.
 

@@ -35,7 +35,7 @@ The installed skills are namespaced as `playableads:setup`, `playableads:author`
 - “Use playableads:author to create a 20-second tap-to-collect game with my supplied artwork. The app and store destinations are pending.”
 - “Use playableads:verify to check the Unity and Google preview exports for my-game and tell me what still needs manual verification.”
 
-The skills read `AGENTS.md`, the README, authoring guide and game brief from the **selected project**, not the installed plugin cache. They reuse answers already supplied and allow preview work with release details marked **pending**. Release builds still require the existing real-URL configuration and manual destination/device/platform checks. Installing or updating the plugin does not upload creatives or launch campaigns.
+The skills read `AGENTS.md`, the README, authoring guide and game brief from the **selected project**, not the installed plugin cache. They reuse answers already supplied and allow preview work with release details marked **pending**. Unity release builds require real-URL configuration; Google-only builds do not read it. Release readiness for both still requires manual destination/device/platform checks. Installing or updating the plugin does not upload creatives or launch campaigns.
 
 ## Update or remove
 
@@ -62,12 +62,16 @@ codex plugin marketplace remove playableads
 
 Uninstalling does not delete your toolkit checkout or games. A catalog committed in a project may still be discoverable in that project after removing a configured marketplace registration.
 
+## Toolkit compatibility
+
+Version 0.2.0 checks the selected checkout's documented build capabilities before using `--platform google|unity|all`. It does not upgrade old projects automatically. Google produces one `dist/<id>/google/playable.zip`; Unity retains OS-specific HTML. Rebuild older reports to migrate to schema 2. Google-only release builds do not require Unity store URLs, but app/OS/destination setup and manual checks still belong to each campaign.
+
 ## Maintenance and validation
 
-The manifest starts at version `0.1.0`. Bump its semantic version whenever packaged skills or metadata change and record the change in the [plugin changelog](../plugins/playableads/CHANGELOG.md). Keep the plugin's bundled MIT license in sync with the repository license. No toolkit runtime is copied into the plugin.
+The current plugin version is `0.2.0`. Bump its semantic version whenever packaged skills or metadata change and record the change in the [plugin changelog](../plugins/playableads/CHANGELOG.md). Keep the plugin's bundled MIT license in sync with the repository license. No toolkit runtime is copied into the plugin.
 
 `npm test` includes plugin contract checks, which also run in GitHub Actions through `npm run check`. They check manifest fields, opt-in marketplace policy, path containment, skill frontmatter, onboarding, the license and the packaged-file inventory. They do not prove model behaviour or client compatibility.
 
-Installation, namespaced skill discovery, a local fixture update from `0.1.0` to `0.1.1`, and removal were exercised with isolated Codex configuration on Windows using **codex-cli 0.163.0-alpha.10.2**. The published plugin remains `0.1.0`. Desktop instructions follow official documentation; the desktop UI and other Codex versions have not been separately verified. Workflow smoke checks exercise the documented setup/scaffold/build commands, not an independent model evaluation of every possible prompt.
+Installation, namespaced skill discovery, a local fixture update from `0.1.0` to `0.1.1`, and removal were exercised with isolated Codex configuration on Windows using **codex-cli 0.163.0-alpha.10.2**. These initial installation checks covered `0.1.0`; the `0.2.0` skills add universal Google export guidance. Desktop instructions follow official documentation; the desktop UI and other Codex versions have not been separately verified. Workflow smoke checks exercise the documented setup/scaffold/build commands, not an independent model evaluation of every possible prompt.
 
 See the [official plugin packaging, marketplace and installation guidance](https://developers.openai.com/plugins/build/plugins) for client support and directory distribution details.

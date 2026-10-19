@@ -53,3 +53,41 @@ test('mobile lab fits the preview without changing the emulated game viewport', 
   await page.mouse.click(box.x + box.width * 0.28, box.y + box.height * 0.18);
   await expect(frame.locator('.progress')).toHaveText('1 / 8');
 });
+
+
+test('universal previews omit OS and restore the previous Unity target', async ({ page, request }) => {
+  await page.goto('http://127.0.0.1:5173');
+  const frame = page.frameLocator('#playable');
+  await expect(frame.locator('#ad-root')).toHaveAttribute('data-state', 'running');
+  await page.locator('#os').selectOption('ios');
+  await expect(page.locator('#os-field')).toBeVisible();
+  for (const host of ['google', 'browser']) {
+    const response = page.waitForResponse(response => {
+      const url = new URL(response.url());
+      return url.pathname === '/api/export' && url.searchParams.get('platform') === host;
+    });
+    await page.locator('#host').selectOption(host);
+    const exported = await response;
+    expect(exported.ok()).toBeTruthy();
+    const url = new URL(exported.url());
+    expect(url.searchParams.has('os')).toBeFalsy();
+    expect(url.searchParams.has('storeUrl')).toBeFalsy();
+    expect(await exported.text()).not.toMatch(/targetOs|storeUrl|play\.google\.com|apps\.apple\.com/);
+    await expect(page.locator('#os-field')).toBeHidden();
+    await expect(frame.locator('#ad-root')).toHaveAttribute('data-state', 'running');
+    await page.locator('#landscape').click();
+    await expect(frame.locator('#ad-root')).toHaveAttribute('data-orientation', 'landscape');
+    await page.locator('#portrait').click();
+    await expect(frame.locator('#ad-root')).toHaveAttribute('data-orientation', 'portrait');
+    const invalid = await request.get(`http://127.0.0.1:5173/api/export?game=tap-to-collect&platform=${host}&os=ios`);
+    expect(invalid.status()).toBe(400);
+  }
+  const response = page.waitForResponse(response => new URL(response.url()).searchParams.get('platform') === 'unity');
+  await page.locator('#host').selectOption('unity');
+  expect(new URL((await response).url()).searchParams.get('os')).toBe('ios');
+  await expect(page.locator('#os-field')).toBeVisible();
+  await expect(page.locator('#os')).toHaveValue('ios');
+  await page.locator('#verify').click();
+  await expect(page.locator('#report')).toContainText('google:');
+  await expect(page.locator('#report')).not.toContainText('google /');
+});

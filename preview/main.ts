@@ -42,7 +42,11 @@ function stubScript(): string {
 async function reload(): Promise<void> {
   const current = ++reloadNumber;
   token = crypto.randomUUID(); exits = 0; control('exit-count').textContent = '0';
-  const response = await fetch('/api/export?' + new URLSearchParams({ game: game.value, platform: host.value, os: os.value }));
+  control('os-field').hidden = host.value !== 'unity';
+  control('google-destination').hidden = host.value !== 'google';
+  const params = new URLSearchParams({ game: game.value, platform: host.value });
+  if (host.value === 'unity') params.set('os', os.value);
+  const response = await fetch('/api/export?' + params);
   if (current !== reloadNumber) return;
   if (!response.ok) { log(await response.text()); return; }
   let html = await response.text();
@@ -72,7 +76,7 @@ control('verify').onclick = async () => {
   const response = await fetch('/api/report?game=' + encodeURIComponent(game.value));
   if (!response.ok) { control('report').textContent = await response.text(); return; }
   const report = await response.json();
-  control('report').textContent = report.artifacts.map((item: { platform: string; os: string; bytes: number }) => `${item.platform} / ${item.os}: ${item.bytes.toLocaleString()} bytes`).join(' · ') + `. ${report.mode.toUpperCase()} builds. Platform acceptance pending.`;
+  control('report').textContent = report.artifacts.map((item: { platform: string; os?: string; bytes: number }) => `${item.platform}${item.os ? ' / ' + item.os : ''}: ${item.bytes.toLocaleString()} bytes`).join(' · ') + `. ${report.mode.toUpperCase()} builds. Platform acceptance pending.`;
 };
 const listing = await (await fetch('/api/games')).json();
 for (const item of listing.games) { const option = document.createElement('option'); option.value = item.id; option.textContent = item.title; game.appendChild(option); }

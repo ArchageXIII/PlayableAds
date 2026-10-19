@@ -1,6 +1,6 @@
 # Platform baseline
 
-Reviewed 5 October 2026. Applicable products: **Unity User Acquisition playables** and **Google Ads App campaign HTML5/playables**. Do not substitute Google display-banner specifications or Unity Exchange specifications.
+Baseline reviewed 5 October 2026; Google export integration rechecked 19 October 2026. Applicable products: **Unity User Acquisition playables** and **Google Ads App campaign HTML5/playables**. Do not substitute Google display-banner specifications or Unity Exchange specifications.
 
 ## Official references
 
@@ -19,3 +19,7 @@ The release ceiling is 4,500,000 bytes for HTML and ZIP. Google's troubleshootin
 Production is ES5 classic inline JavaScript, with no CDN engines or runtime module loading. This targets a broad browser range; old Android/iOS support stays unverified until tested on the actual relevant WebViews. Do not infer certification from Playwright's modern browser engines or from a successful upload alone.
 
 Track documentation changes through an explicit review of these sources when modifying the exporter. No recurring monitoring or scheduled automation has been configured.
+
+## Export targets
+
+The toolkit compiles one Google ZIP per game, without an embedded OS or store destination. Google documents `ExitApi.exit()` as using the configured final URL; the shared ZIP is our implementation choice for OS-independent gameplay, not a claim that campaign/device checks are interchangeable. Configure and verify the advertised app, OS and destination in each Google campaign. Unity retains separate OS exports because its adapter embeds each configured store URL.

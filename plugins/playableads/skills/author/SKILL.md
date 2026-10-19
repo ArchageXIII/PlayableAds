@@ -14,3 +14,10 @@ For a new game, use the checkout's scaffolder with a unique id and the closest `
 Implement meaningful checks for the requested mechanic and an exported-game smoke test for a new game. Inspect actual portrait and landscape previews using available browser tooling. Run the checks specified by the checkout; build previews explicitly with `--mode preview`, verify them, and exercise the exported artifacts. Existing reference-game tests do not prove a newly authored game works.
 
 Fix actual failures without weakening validators. Keep preview instrumentation outside shipping code. Summarize changed files, the actual visual and automated checks, and remaining destination/device/platform work. Follow `docs/platform-checks.md` before describing anything as release-ready. Do not upload creatives, host previews or launch campaigns as part of authoring.
+
+
+## Universal Google exports (toolkit capability check)
+
+Before using platform-selection flags, inspect the selected checkout's README and `tooling/cli.ts` for `--platform google|unity|all` build support and its report schema. An installed plugin update does not upgrade the project. On an older checkout, use its documented commands and explain that universal exports require a reviewed toolkit upgrade; do not silently pull or modify it.
+
+On a compatible checkout, Google builds use `--platform google` without `--os` and produce one `dist/<id>/google/playable.zip`. Google-only release builds do not read Unity store configuration. Keep actual campaign/app/OS/destination checks pending until verified. Unity builds use `--platform unity` with OS-specific URLs; the default `--platform all` retains combined builds. Use `--mode preview` for preview work. `verify --game <id>` validates the entire latest schema-2 report and takes no build-selection flags. A rebuild migrates older reports and removes only the known obsolete per-OS Google ZIPs. Manual Google checks still require `--os` as campaign context, saved as `campaignOs` against the universal ZIP hash.
