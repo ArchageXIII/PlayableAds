@@ -1,0 +1,43 @@
+{
+  "name": "adgames",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArchageXIII/PlayableAds.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "scripts": {
+    "dev": "tsx tooling/cli.ts dev",
+    "create-game": "tsx tooling/cli.ts create",
+    "build": "tsx tooling/cli.ts build",
+    "verify": "tsx tooling/cli.ts verify",
+    "platform-check": "tsx tooling/cli.ts platform-check",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/unit/*.test.ts",
+    "test:browser": "playwright test",
+    "check": "npm run typecheck && npm test && npm run build -- --all --mode preview && npm run verify -- --all && npm run test:browser"
+  },
+  "devDependencies": {
+    "@babel/core": "7.29.7",
+    "@babel/preset-env": "7.29.7",
+    "@playwright/test": "1.63.0",
+    "@types/babel__core": "7.20.5",
+    "@types/html-minifier-terser": "7.0.2",
+    "@types/node": "22.20.5",
+    "acorn": "8.18.0",
+    "acorn-walk": "8.3.5",
+    "esbuild": "0.28.2",
+    "fflate": "0.8.3",
+    "html-minifier-terser": "7.2.0",
+    "parse5": "8.0.1",
+    "terser": "5.51.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vite": "8.3.2"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "tap-to-collect",
+  "title": "Pocket treasure",
+  "instructions": "Tap every coin before time runs out.",
+  "durationSeconds": 20,
+  "successText": "All eight treasures are yours. Ready for the next adventure?",
+  "failureText": "A few coins escaped. Give it another go!",
+  "ctaText": "Install & keep playing",
+  "accent": "#ffd36a",
+  "assets": { "coin": { "path": "assets/coin.png", "kind": "image" } }
+}

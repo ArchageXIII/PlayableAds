@@ -1,0 +1,10 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+.cache/
+release.config.json
+.env
+.env.*
+!.env.example
+*.log

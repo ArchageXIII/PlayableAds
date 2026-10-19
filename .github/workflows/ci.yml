@@ -1,0 +1,67 @@
+name: Validate playable toolkit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  toolkit:
+    name: Toolkit and exported browser tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run check
+        env:
+          CI: 'true'
+      - name: Save preview exports and validation reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-exports
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Save browser reports and failure diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-diagnostics
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  windows-server:
+    name: Windows preview lifecycle
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm.cmd ci
+      - name: Check start, stop, collisions and stale process protection
+        shell: pwsh
+        run: '& .\tests\server-control.ps1'

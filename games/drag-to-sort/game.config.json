@@ -1,0 +1,15 @@
+{
+  "id": "drag-to-sort",
+  "title": "Shape shuffle",
+  "instructions": "Drag each gem to its matching colour tray.",
+  "durationSeconds": 30,
+  "successText": "Everything in its place. There’s more to discover!",
+  "failureText": "The trays need a little more sorting. Try again!",
+  "ctaText": "Install & keep playing",
+  "accent": "#77e1d2",
+  "assets": {
+    "coral": { "path": "assets/coral.png", "kind": "image" },
+    "mint": { "path": "assets/mint.png", "kind": "image" },
+    "blue": { "path": "assets/blue.png", "kind": "image" }
+  }
+}
