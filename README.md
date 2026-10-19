@@ -15,7 +15,7 @@ Local previews at 360 × 640, captured at double resolution. Click an image to v
 | [<img src="docs/screenshots/tap-to-collect.png" width="300" alt="Pocket treasure: eight gold coins to tap, with instructions, a 20-second timer and sound control.">](docs/screenshots/tap-to-collect.png) | [<img src="docs/screenshots/drag-to-sort.png" width="300" alt="Shape shuffle: six coloured gems to drag into matching coral, mint and blue trays, with instructions, a 30-second timer and sound control.">](docs/screenshots/drag-to-sort.png) |
 | Tap eight coins before the 20-second timer expires. | Drag six gems into matching trays within 30 seconds. |
 
-## Run the playable lab
+## Run the optional preview UI
 
 Requires Git and Node.js 22.14 or newer (Node 22 is used in CI). Start with:
 
@@ -44,7 +44,11 @@ npm run dev
 
 Playwright's Linux system-dependency installation may request administrator access. In later examples, use `npm` instead of `npm.cmd` on macOS/Linux. Stop a foreground server with Ctrl+C; the background start/stop scripts below are Windows-only.
 
-Open **http://127.0.0.1:5173/**. Choose Pocket treasure or Shape shuffle and a host. The OS selector applies only to Unity; Google and Browser previews are universal. SDK readiness, visibility, viewport sizes, audio status and intercepted install calls are available in the lab. An opaque-origin, scripts-only iframe models Google's sandbox. The browser host is development-only. Reload to reset host/game state.
+Open **http://127.0.0.1:5173/**. Choose a game, preview platform and screen size in the toolbar. The OS selector applies only to Unity; Google and Browser previews are universal. **Restart preview** resets game/host state. The live preview scales down to fit the window while retaining the selected game viewport dimensions; its displayed percentage shows the visual scale. SDK readiness, visibility simulation, the ad close button overlay and event logs are in the collapsed **Developer tools** section. An opaque-origin, scripts-only iframe models Google's sandbox; the Browser platform is development-only. CTA clicks are recorded without opening the destination.
+
+**Exported files** lists only the selected game's latest build report: one Google ZIP and any selected Unity Android/iOS HTML exports. Download links return the recorded bytes through the local server; **Copy file path** copies the absolute local path. **View verification report** opens the JSON with checks recorded at build time. **Refresh files**, changing games or returning to the window refreshes the listing. If no report exists, the panel shows a preview-build command. A new build invalidates older links; refresh before downloading.
+
+The **Live preview** compiles current source separately from the **Last exported build**. **Verify exports** explicitly checks current files and reproduces them from source; it does not run automatically. Results are timestamped local checks, not platform approval. Outdated but intact exports remain downloadable with a warning; missing, changed or unsafe files cannot be downloaded. Rebuild outdated exports, refresh the list and verify again. Builds and the automated check suite work without opening this optional UI.
 
 On Windows, after dependencies are installed, start and stop the lab with no arguments:
 
@@ -53,7 +57,7 @@ On Windows, after dependencies are installed, start and stop the lab with no arg
 .\stop.ps1
 ```
 
-`start.ps1` runs the server in the background, reuses an existing healthy project preview, and tries ports 5173–5193 if another application occupies the default. Use the URL it prints. `stop.ps1` identifies this project's process before stopping it, including a server started manually with `npm.cmd run dev`; it leaves unrelated processes alone. Both scripts work from any working directory and serialize simultaneous start/stop operations. State and logs live in the ignored `.cache/preview-server` folder. If a managed process becomes unhealthy, stop it before restarting. To use `Check built artifacts` in the lab, build preview exports first as shown above.
+`start.ps1` runs the server in the background, reuses an existing healthy project preview, and tries ports 5173–5193 if another application occupies the default. Use the URL it prints. `stop.ps1` identifies this project's process before stopping it, including a server started manually with `npm.cmd run dev`; it leaves unrelated processes alone. Both scripts work from any working directory and serialize simultaneous start/stop operations. State and logs live in the ignored `.cache/preview-server` folder. If a managed process becomes unhealthy, stop it before restarting. Build preview exports first as shown above to download or verify them in the UI.
 
 The Windows lifecycle integration check is `& .\tests\server-control.ps1`. It stops the project preview, requires ports 5173/5174 to be free, exercises an unrelated collision fixture and stale PID protection, and leaves the preview stopped.
 

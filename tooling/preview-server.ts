@@ -4,6 +4,7 @@ import { compileGame, verifyGame, type CompileTarget } from './build';
 import { listGames, loadConfig, ROOT } from './config';
 import type { Platform, TargetOs } from '../src/runtime/types';
 import { PREVIEW_STORE_URLS } from './constants';
+import { listPreviewFiles, previewDownload, PreviewFileError, verifyPreviewFiles } from './preview-files';
 
 export async function startPreview(port: number, selectedGame?: string) {
   const server = await createServer({
@@ -24,6 +25,20 @@ export async function startPreview(port: number, selectedGame?: string) {
             res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ games, selectedGame })); return;
           }
           const game = url.searchParams.get('game') || '';
+          if (url.pathname === '/api/files') {
+            res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(await listPreviewFiles(game))); return;
+          }
+          if (url.pathname === '/api/download') {
+            const file = await previewDownload(url.searchParams);
+            res.setHeader('Content-Type', file.contentType);
+            res.setHeader('X-Content-Type-Options', 'nosniff');
+            res.setHeader('Content-Disposition', `${file.attachment ? 'attachment' : 'inline'}; filename="${file.filename}"`);
+            res.setHeader('Content-Length', file.bytes.length);
+            res.end(file.bytes); return;
+          }
+          if (url.pathname === '/api/verify') {
+            res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(await verifyPreviewFiles(game, url.searchParams.get('fingerprint') || ''))); return;
+          }
           if (url.pathname === '/api/export') {
             const platform = url.searchParams.get('platform') as Platform;
             if (!['unity', 'google', 'browser'].includes(platform)) throw new Error('Invalid preview target.');
@@ -40,7 +55,7 @@ export async function startPreview(port: number, selectedGame?: string) {
           }
           if (url.pathname === '/api/report') { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(await verifyGame(game))); return; }
           res.statusCode = 404; res.end('Unknown preview endpoint.');
-        } catch (error) { res.statusCode = 400; res.setHeader('Content-Type', 'text/plain'); res.end((error as Error).message); }
+        } catch (error) { res.statusCode = error instanceof PreviewFileError ? error.status : 400; res.setHeader('Content-Type', 'text/plain; charset=utf-8'); res.end((error as Error).message); }
       });
     } }]
   });

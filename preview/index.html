@@ -1,24 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PlayableAds · Playable lab</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PlayableAds · Playable preview</title></head>
 <body>
   <div class="app-shell">
-    <header class="lab-header"><a class="brand" href="/">AD<span>GAMES</span><span class="brand-dot"></span></a><span class="header-caption">PLAYABLE LAB / 2D</span><span class="local-badge">LOCAL PREVIEW</span></header>
-    <main class="lab-layout">
-      <aside class="controls">
-        <p class="kicker">BUILD. PLAY. VERIFY.</p><h1>A small game.<br>A bigger possibility.</h1><p class="intro">One game source, two ad platforms. Test the experience before it leaves your machine.</p>
+    <header><h1>Playable preview</h1><span>PlayableAds · Local preview</span></header>
+    <main>
+      <section class="toolbar" aria-label="Preview controls">
         <label class="field">Game<select id="game"></select></label>
-        <div class="field-pair"><label class="field">Host<select id="host"><option value="unity">Unity / MRAID</option><option value="google">Google / ExitAPI</option><option value="browser">Browser</option></select></label><label class="field" id="os-field">Unity target<select id="os"><option value="android">Android</option><option value="ios">iOS</option></select></label></div>
-        <p id="google-destination" class="note" hidden>One Google ZIP for both operating systems. Set the app and destination in Google Ads.</p>
-        <div class="size-tabs" role="group" aria-label="Viewport"><button id="portrait" class="selected">Portrait</button><button id="landscape">Landscape</button><button id="small">Small</button></div>
-        <div class="size-fields"><label>Width<input id="width" type="number" min="240" max="1280" value="360"></label><span>×</span><label>Height<input id="height" type="number" min="240" max="1280" value="640"></label><button id="resize">Apply</button></div>
-        <section class="host-controls"><h2>Host controls</h2><label class="toggle"><input id="ready" type="checkbox" checked> SDK ready</label><label class="toggle"><input id="visible" type="checkbox" checked> Ad visible</label><label class="toggle"><input id="overlay" type="checkbox" checked> Show container close overlay</label><button id="reload" class="secondary">Reload playable</button></section>
-        <p class="note">Install clicks are intercepted here. Campaign destinations and platform/device checks are required for release.</p>
-      </aside>
-      <section class="preview-column" aria-label="Playable preview"><div class="preview-heading"><span id="preview-title">Loading games…</span><span id="dimensions">360 × 640</span></div><div class="viewport-scroll"><div id="device-wrap" class="device-wrap"><div id="device" class="device"><iframe id="playable" title="Playable game" sandbox="allow-scripts"></iframe><span id="container-close" aria-hidden="true">×</span></div></div></div><p class="canvas-caption"><span class="pulse"></span> Opaque-origin sandbox · scripts only · embedded game assets</p></section>
-      <aside class="inspection"><p class="kicker">INSPECTION</p><h2>Experience signals</h2><div class="signal"><span>Game</span><strong id="state">—</strong></div><div class="signal"><span>Audio</span><strong id="audio">—</strong></div><div class="signal"><span>Progress</span><strong id="progress">—</strong></div><div class="signal"><span>Orientation</span><strong id="orientation">—</strong></div><div class="signal"><span>Install calls</span><strong id="exit-count">0</strong></div><div class="divider"></div><h2>Export verification</h2><button id="verify" class="secondary">Check built artifacts</button><p id="report" class="report">Build the game to inspect its verified exports.</p><div class="divider"></div><h2>Event log</h2><ol id="events" class="events" aria-live="polite"></ol></aside>
+        <label class="field">Preview platform<select id="host"><option value="unity">Unity / MRAID</option><option value="google">Google / ExitAPI</option><option value="browser">Browser</option></select></label>
+        <label class="field" id="os-field">Unity target<select id="os"><option value="android">Android</option><option value="ios">iOS</option></select></label>
+        <div class="screen-controls"><span class="field-label">Screen size</span><div class="size-tabs" role="group" aria-label="Screen size"><button id="portrait" aria-pressed="true">Portrait</button><button id="landscape" aria-pressed="false">Landscape</button><button id="small" aria-pressed="false">Small</button></div></div>
+        <form id="size-form" class="size-fields"><label>Width<input id="width" type="number" min="240" max="1280" value="360"></label><span aria-hidden="true">×</span><label>Height<input id="height" type="number" min="240" max="1280" value="640"></label><button id="resize" type="submit">Apply</button></form>
+        <button id="reload">Restart preview</button>
+      </section>
+      <div class="lab-layout">
+        <section class="preview-column" aria-label="Live preview">
+          <div class="preview-heading"><div><h2>Live preview</h2><span id="preview-title">Loading games…</span></div><span id="dimensions">360 × 640 · 100%</span></div>
+          <p id="preview-error" role="status" hidden></p>
+          <div class="viewport-scroll"><div id="device-wrap"><div id="device"><iframe id="playable" title="Playable game" sandbox="allow-scripts"></iframe><span id="container-close" aria-hidden="true">×</span></div></div></div>
+          <div class="signals" aria-label="Game status"><span>Game status <strong id="state">—</strong></span><span>Audio <strong id="audio">—</strong></span><span>Progress <strong id="progress">—</strong></span><span>Orientation <strong id="orientation">—</strong></span><span>CTA clicks <strong id="exit-count">0</strong></span></div>
+          <p class="note">CTA clicks are recorded here without opening the destination.</p>
+        </section>
+        <aside class="exports" aria-labelledby="exports-title">
+          <div class="panel-heading"><h2 id="exports-title">Exported files</h2><button id="refresh-files">Refresh files</button></div>
+          <p class="note">Last exported build · separate from the live preview.</p>
+          <p id="google-destination" class="note" hidden>One ZIP for Android and iOS. Set the destination in Google Ads.</p>
+          <div id="files" aria-live="polite">Loading exported files…</div>
+          <div class="verification"><button id="verify" disabled>Verify exports</button><p id="report" role="status">Current sources not checked.</p><p class="note">Verify exports checks files against current sources. Local checks do not establish platform approval.</p></div>
+          <p id="file-action-status" role="status"></p>
+          <label id="copy-fallback" hidden>Copy this file path<input id="copy-path" type="text" readonly></label>
+        </aside>
+      </div>
+      <details class="developer-tools"><summary>Developer tools</summary><div class="developer-content">
+        <div class="host-controls"><h2>Host simulation</h2><label><input id="ready" type="checkbox" checked> SDK ready</label><label><input id="visible" type="checkbox" checked> Ad visible</label><label><input id="overlay" type="checkbox" checked> Show ad close button</label><p class="note">Opaque-origin sandbox · scripts only · embedded game assets</p></div>
+        <div><h2>Event log</h2><ol id="events" class="events" aria-live="polite"></ol></div>
+      </div></details>
     </main>
-    <footer>SMALL FOOTPRINT. SHARED GAMEPLAY.<span>Unity HTML + Google ZIP / Platform checks pending</span></footer>
   </div>
   <script type="module" src="/main.ts"></script>
 </body></html>

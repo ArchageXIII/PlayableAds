@@ -83,14 +83,14 @@ export async function compileGame(id: string, target: CompileTarget): Promise<{ 
   }
   return { html, assets: contributions, sourceSha256: sha256(source) };
 }
-function artifactPath(id: string, target: ArtifactTarget): string {
+export function artifactPath(id: string, target: ArtifactTarget): string {
   return target.platform === 'google' ? `dist/${id}/google/playable.zip` : `dist/${id}/${target.os}/unity/index.html`;
 }
 function artifactBytes(html: string, platform: 'unity' | 'google'): Uint8Array {
   return platform === 'unity' ? strToU8(html) : zipSync({ 'index.html': [strToU8(html), { mtime: new Date(1980, 0, 2, 12) }] }, { level: 9 });
 }
 // Check each existing component, including Windows junctions, before writing or removing generated files.
-async function outputPath(relative: string): Promise<string> {
+export async function outputPath(relative: string): Promise<string> {
   const destination = path.resolve(ROOT, relative);
   const inside = path.relative(ROOT, destination);
   if (!inside.startsWith('dist' + path.sep) || path.isAbsolute(inside)) throw new Error('Output must stay inside dist.');
@@ -148,18 +148,25 @@ export async function buildGame(id: string, mode: BuildMode, systems: TargetOs[]
   await writeFile(reportPath, JSON.stringify(report, null, 2) + '\n');
   return report;
 }
-export async function verifyGame(id: string): Promise<BuildReport> {
-  const config = await loadConfig(id);
-  const report = JSON.parse(await readFile(await outputPath(`dist/${config.id}/report.json`), 'utf8')) as BuildReport;
-  if (report.schemaVersion !== 2) throw new Error('Unsupported build report schema. Rebuild this game for universal Google exports (schema 2).');
+export class SourceMismatchError extends Error {}
+export async function readBuildReport(id: string): Promise<{ report: BuildReport; bytes: Buffer; fingerprint: string }> {
+  validId(id);
+  const bytes = await readFile(await outputPath(`dist/${id}/report.json`));
+  const report = JSON.parse(bytes.toString('utf8')) as BuildReport;
+  validateBuildReport(id, report);
+  return { report, bytes, fingerprint: sha256(bytes) };
+}
+export function validateBuildReport(id: string, report: BuildReport): void {
+  if (!report || report.schemaVersion !== 2) throw new Error('Unsupported build report schema. Rebuild this game for universal Google exports (schema 2).');
   if (report.game !== id || !Array.isArray(report.artifacts) || !report.artifacts.length || !['preview', 'release'].includes(report.mode) || !report.storeUrls || typeof report.storeUrls !== 'object' || Array.isArray(report.storeUrls)) throw new Error('Invalid build report.');
   if (report.localValidation !== 'passed' || report.platformAcceptance !== 'pending' || report.releaseReady !== false) throw new Error('Invalid build report readiness fields.');
-  const sources: string[] = [];
+  if (!Number.isFinite(Date.parse(report.createdAt)) || !/^[a-f0-9]{64}$/.test(report.sourceSha256)) throw new Error('Invalid build report metadata.');
   const seen = new Set<string>();
   const systems = new Set<string>();
   // Validate the entire target list before reading artifacts or compiling sources.
   for (const artifact of report.artifacts) {
     if (!artifact || !['unity', 'google'].includes(artifact.platform) || (artifact.platform === 'unity' ? !['android', 'ios'].includes(artifact.os) : 'os' in artifact)) throw new Error('Invalid artifact target.');
+    if (!Number.isSafeInteger(artifact.bytes) || artifact.bytes < 1 || !/^[a-f0-9]{64}$/.test(artifact.sha256)) throw new Error('Invalid artifact metadata.');
     const expected = artifactPath(id, artifact);
     if (artifact.path !== expected) throw new Error('Invalid artifact path.');
     if (seen.has(expected)) throw new Error('Duplicate artifact target.');
@@ -172,6 +179,11 @@ export async function verifyGame(id: string): Promise<BuildReport> {
     }
   }
   if (Object.keys(report.storeUrls).some(os => !systems.has(os))) throw new Error('Store URLs are only allowed for selected Unity artifacts.');
+}
+export async function verifyGame(id: string): Promise<BuildReport> {
+  await loadConfig(id);
+  const { report } = await readBuildReport(id);
+  const sources: string[] = [];
   for (const artifact of report.artifacts) {
     const bytes = await readFile(await outputPath(artifact.path));
     if (sha256(bytes) !== artifact.sha256 || bytes.length !== artifact.bytes) throw new Error('Artifact changed after build: ' + artifact.path);
@@ -180,8 +192,8 @@ export async function verifyGame(id: string): Promise<BuildReport> {
     const target: CompileTarget = artifact.platform === 'unity' ? { platform: 'unity', os: artifact.os, storeUrl: report.storeUrls[artifact.os]! } : { platform: 'google' };
     const compiled = await compileGame(id, target);
     sources.push(compiled.sourceSha256);
-    if (sha256(artifactBytes(compiled.html, artifact.platform)) !== artifact.sha256) throw new Error('Artifact does not match current sources: ' + artifact.path);
+    if (sha256(artifactBytes(compiled.html, artifact.platform)) !== artifact.sha256) throw new SourceMismatchError('Artifact does not match current sources: ' + artifact.path);
   }
-  if (sha256(sources.join('')) !== report.sourceSha256) throw new Error('Sources changed since build; rebuild before verification.');
+  if (sha256(sources.join('')) !== report.sourceSha256) throw new SourceMismatchError('Sources changed since build; rebuild before verification.');
   return report;
 }

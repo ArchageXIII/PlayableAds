@@ -174,8 +174,10 @@ test('schema migration, duplicate targets, OS-bearing Google records and stale s
     [report => { report.artifacts.push(report.artifacts[2]); }, /Duplicate/],
     [report => { report.artifacts[2].os = 'android'; }, /Invalid artifact target/],
     [report => { report.artifacts[2].path = `dist/${game}/android/google/playable.zip`; }, /Invalid artifact path/],
-    [report => { report.sourceSha256 = 'stale'; }, /Sources changed/],
-    [report => { report.artifacts[2].sha256 = 'changed'; }, /changed after build/],
+    [report => { report.sourceSha256 = 'stale'; }, /Invalid build report metadata/],
+    [report => { report.artifacts[2].sha256 = 'changed'; }, /Invalid artifact metadata/],
+    [report => { report.sourceSha256 = '0'.repeat(64); }, /Sources changed/],
+    [report => { report.artifacts[2].sha256 = '0'.repeat(64); }, /changed after build/],
     [report => { report.platformAcceptance = 'passed'; }, /readiness/]
   ];
   try {

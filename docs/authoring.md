@@ -52,3 +52,9 @@ The default 48 CSS-pixel top reserve is a conservative layout choice, **not a pl
 Source auditing, exported AST/HTML checks and network tests are complementary guardrails, not a security sandbox or an exhaustive static proof. Keep generated game code reviewable, and test paths that could trigger side effects.
 
 Runtime configuration is platform-specific: Unity has `platform`, `targetOs` and `storeUrl`; Google and Browser have `platform` without either destination field. Games should use shared gameplay fields and completion services. Host adapters now expose parameterless `exit()`; Unity binds its URL when its adapter is constructed. Custom runtime integrations using the previous interface need updating.
+
+## Optional preview interface
+
+Use the compact toolbar to select a game, preview platform and viewport, or restart the live preview. Google has no OS selector; Unity remembers its selected OS. Scaled previews retain their selected internal dimensions. Host simulations and event logs are in the collapsed Developer tools section.
+
+The Exported files panel shows the latest report, independent of the live preview. Build through the CLI, then refresh files to download the Google ZIP or recorded Unity HTMLs, view the saved JSON report, or copy a local file path. Verify exports runs current-source verification on demand. A timestamped local pass is not platform approval; source mismatches require rebuilding, refreshing and rechecking. Missing or altered files cannot be downloaded. The browser is optional for builds and automated checks.
