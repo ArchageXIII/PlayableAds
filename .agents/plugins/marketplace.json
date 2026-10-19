@@ -1,0 +1,20 @@
+{
+  "name": "playableads",
+  "interface": {
+    "displayName": "PlayableAds"
+  },
+  "plugins": [
+    {
+      "name": "playableads",
+      "source": {
+        "source": "local",
+        "path": "./plugins/playableads"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

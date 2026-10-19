@@ -1,0 +1,32 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "playableads",
+  "version": "0.1.0",
+  "description": "Set up, author and verify Canvas 2D playable ads with the PlayableAds toolkit.",
+  "author": {
+    "name": "Magicave Holdings Limited"
+  },
+  "homepage": "https://github.com/ArchageXIII/PlayableAds",
+  "repository": "https://github.com/ArchageXIII/PlayableAds",
+  "license": "MIT",
+  "keywords": ["playable-ads", "canvas", "games", "unity", "google-ads"],
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/setup/SKILL.md",
+      "interface": {
+        "displayName": "PlayableAds",
+        "shortDescription": "Create and validate lightweight 2D playable ads.",
+        "longDescription": "Use an existing PlayableAds project or set up a fresh checkout, author a game from a brief, and verify Unity HTML and Google ZIP exports locally. Real campaign and device checks remain manual.",
+        "developerName": "Magicave Holdings Limited",
+        "category": "Developer Tools",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://github.com/ArchageXIII/PlayableAds",
+        "defaultPrompt": [
+          "Set up a PlayableAds project in a new folder.",
+          "Create a 20-second playable ad from my brief.",
+          "Verify this game's Unity and Google preview exports."
+        ]
+      }
+    }
+  }
+}

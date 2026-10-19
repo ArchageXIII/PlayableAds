@@ -2,9 +2,9 @@
 
 [![Validate playable toolkit](https://github.com/ArchageXIII/PlayableAds/actions/workflows/ci.yml/badge.svg)](https://github.com/ArchageXIII/PlayableAds/actions/workflows/ci.yml)
 
-A small Canvas 2D toolkit for authoring playable ads with Codex. Write gameplay once; export a single Unity HTML file and a Google App campaign ZIP for Android and/or iOS. 3D and WebGL are not supported.
+A small Canvas 2D toolkit for authoring playable ads directly or with a coding agent. Write gameplay once; export a single Unity HTML file and a Google App campaign ZIP for Android and/or iOS. 3D and WebGL are not supported.
 
-Source: [ArchageXIII/PlayableAds](https://github.com/ArchageXIII/PlayableAds). Clone the repository to author games locally; no npm package or hosted service is required. Codex can follow the included briefs and instructions, and developers can also edit the TypeScript directly.
+Source: [ArchageXIII/PlayableAds](https://github.com/ArchageXIII/PlayableAds). Clone the repository to author games locally; no npm package or hosted service is required. Coding agents that can edit files and run local commands can follow the included briefs and instructions, and developers can also edit the TypeScript directly. Point your agent to [AGENTS.md](AGENTS.md) and the [authoring guide](docs/authoring.md); automatic instruction discovery varies between agents.
 
 ## Demo games
 
@@ -58,6 +58,12 @@ On Windows, after dependencies are installed, start and stop the lab with no arg
 The Windows lifecycle integration check is `& .\tests\server-control.ps1`. It stops the project preview, requires ports 5173/5174 to be free, exercises an unrelated collision fixture and stale PID protection, and leaves the preview stopped.
 
 Both sample games have embedded, code-authored PNG artwork. Pocket treasure requires eight taps within 20 seconds. Shape shuffle requires six correct drops within 30 seconds. The clock starts on the first gameplay gesture. Both have win/loss states, replay, sound controls, and install buttons.
+
+## Optional Codex plugin
+
+Codex users can install the **PlayableAds** plugin for guided setup, game authoring and export verification. It supports a fresh checkout or an existing project and uses the same toolkit commands and project documentation. The plugin is optional; no MCP server or advertising-account connection is required.
+
+See the [Codex plugin guide](docs/codex-plugin.md) for desktop and CLI installation, example prompts, updates and removal. Plugin updates refresh the workflows; they do not upgrade or overwrite your game project.
 
 ## Create a game
 
