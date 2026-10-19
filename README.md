@@ -6,6 +6,15 @@ A small Canvas 2D toolkit for authoring playable ads with Codex. Write gameplay 
 
 Source: [ArchageXIII/PlayableAds](https://github.com/ArchageXIII/PlayableAds). Clone the repository to author games locally; no npm package or hosted service is required. Codex can follow the included briefs and instructions, and developers can also edit the TypeScript directly.
 
+## Demo games
+
+Local previews at 360 × 640, captured at double resolution. Click an image to view it full size. These previews do not establish platform or device verification.
+
+| Pocket treasure | Shape shuffle |
+| :---: | :---: |
+| [<img src="docs/screenshots/tap-to-collect.png" width="300" alt="Pocket treasure: eight gold coins to tap, with instructions, a 20-second timer and sound control.">](docs/screenshots/tap-to-collect.png) | [<img src="docs/screenshots/drag-to-sort.png" width="300" alt="Shape shuffle: six coloured gems to drag into matching coral, mint and blue trays, with instructions, a 30-second timer and sound control.">](docs/screenshots/drag-to-sort.png) |
+| Tap eight coins before the 20-second timer expires. | Drag six gems into matching trays within 30 seconds. |
+
 ## Run the playable lab
 
 Requires Git and Node.js 22.14 or newer (Node 22 is used in CI). Start with:
