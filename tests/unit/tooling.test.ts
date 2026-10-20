@@ -5,11 +5,12 @@ import { readFile, writeFile, mkdir, unlink, symlink, rmdir } from 'node:fs/prom
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
-import { compileGame, buildGame, verifyGame } from '../../tooling/build';
+import { compileGame, buildGame, verifyGame, sha256 } from '../../tooling/build';
 import { ROOT, MAX_BYTES, releaseUrls, resolveGameAsset, validateStoreUrl, validId } from '../../tooling/config';
 import { validateHtml, validateZip } from '../../tooling/validate';
 import { auditSource } from '../../tooling/source-policy';
 import { platformCheckEvidence } from '../../tooling/platform-check';
+import { embedManifest, extractManifest, verifyManifest } from '../../tooling/manifest';
 let unity: string;
 let google: string;
 before(async () => { unity = (await compileGame('tap-to-collect', { platform: 'unity', os: 'android', storeUrl: '' })).html; google = (await compileGame('tap-to-collect', { platform: 'google' })).html; });
@@ -35,7 +36,26 @@ test('standalone HTML and the shipped ZIP retain the complete MIT notice', async
     assert.equal(html.split(notice).length - 1, 1);
     assert.ok(html.includes('Copyright (c) 2026 Magicave Holdings Limited'));
     assert.equal(validateHtml(strToU8(html), artifact.platform).ok, true);
+    const manifest = verifyManifest(strToU8(html), { game: report.game, mode: report.mode, ...artifact });
+    assert.equal(manifest.ok, true, manifest.errors.join('\n'));
+    const pkg = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8'));
+    assert.equal(manifest.manifest!.generatorVersion, pkg.version);
+    if (artifact.platform === 'google') assert.deepEqual(Object.keys(unzipSync(bytes)), ['index.html']);
   }
+});
+test('a matching manifest never bypasses technical export validation', () => {
+  const { manifest, content } = extractManifest(strToU8(unity));
+  const unsafe = strFromU8(content).replace('<script>', '<script>fetch("https://example.com");');
+  const html = strToU8(embedManifest(unsafe, manifest));
+  assert.equal(verifyManifest(html).ok, true);
+  const validation = validateHtml(html, 'unity');
+  assert.equal(validation.ok, false);
+  assert.ok(validation.errors.includes('Forbidden runtime API: fetch'));
+});
+test('development Browser host stays unmarked while platform previews carry their mode', async () => {
+  const browser = await compileGame('tap-to-collect', { platform: 'browser' });
+  assert.doesNotMatch(browser.html, /<!--PlayableAdsManifest:/);
+  assert.equal(verifyManifest(strToU8(google), { mode: 'preview', platform: 'google' }).ok, true);
 });
 test('HTML rejects external references, optional closing tags, invalid orientation and development code', () => {
   for (const broken of [
@@ -113,12 +133,19 @@ test('combined exports have one universal Google ZIP and distinct Unity destinat
   const html = strFromU8(unzipSync(await readFile(path.join(ROOT, googleArtifact.path)))['index.html']);
   assert.doesNotMatch(html, /targetOs|storeUrl|play\.google\.com|apps\.apple\.com/);
   for (const item of report.artifacts) if (item.platform === 'unity') {
-    assert.ok((await readFile(path.join(ROOT, item.path), 'utf8')).includes(urls[item.os]));
+    const bytes = await readFile(path.join(ROOT, item.path));
+    assert.ok(bytes.toString('utf8').includes(urls[item.os]));
+    assert.equal(verifyManifest(bytes, { mode: 'release', os: item.os, platform: 'unity' }).ok, true);
   }
+  assert.equal(verifyManifest(strToU8(html), { mode: 'release', platform: 'google' }).ok, true);
   const selected = await buildGame(game, 'release', ['ios'], { ios: 'https://apps.apple.com/app/other/id987654321' });
   assert.equal(selected.artifacts.find(item => item.platform === 'google')!.sha256, googleArtifact.sha256);
   const universal = await buildGame(game, 'preview', [], {}, 'google');
-  assert.equal(universal.artifacts[0].sha256, googleArtifact.sha256);
+  assert.notEqual(universal.artifacts[0].sha256, googleArtifact.sha256);
+  const previewHtml = unzipSync(await readFile(path.join(ROOT, universal.artifacts[0].path)))['index.html'];
+  assert.deepEqual(extractManifest(previewHtml).content, extractManifest(strToU8(html)).content);
+  const repeated = await buildGame(game, 'preview', [], {}, 'google');
+  assert.equal(repeated.artifacts[0].sha256, universal.artifacts[0].sha256);
   assert.deepEqual(universal.storeUrls, {});
   assert.equal((await verifyGame(game)).artifacts.length, 1);
 });
@@ -187,6 +214,30 @@ test('schema migration, duplicate targets, OS-bearing Google records and stale s
       await assert.rejects(verifyGame(game), expected);
     }
   } finally { await writeFile(file, original); }
+});
+
+test('verification rejects manifest identities inconsistent with the report even with updated artifact hashes', async () => {
+  const report = await buildGame(game, 'preview', ['android'], {}, 'unity');
+  const reportFile = path.join(ROOT, 'dist', game, 'report.json');
+  const reportBytes = await readFile(reportFile);
+  const artifact = report.artifacts[0];
+  const file = path.join(ROOT, artifact.path);
+  const original = await readFile(file);
+  const { content, manifest } = extractManifest(original);
+  try {
+    for (const change of [{ game: 'other-game' }, { mode: 'release' as const }, { os: 'ios' as const }]) {
+      const changed = strToU8(embedManifest(strFromU8(content), { ...manifest, ...change, platform: 'unity', os: change.os ?? 'android' }));
+      await writeFile(file, changed);
+      await writeFile(reportFile, JSON.stringify({ ...report, artifacts: [{ ...artifact, bytes: changed.length, sha256: sha256(changed) }] }));
+      await assert.rejects(verifyGame(game), /Manifest .* does not match/);
+    }
+    await writeFile(file, content);
+    await writeFile(reportFile, JSON.stringify({ ...report, artifacts: [{ ...artifact, bytes: content.length, sha256: sha256(content) }] }));
+    await assert.rejects(verifyGame(game), /Missing.*Rebuild/);
+  } finally {
+    await writeFile(file, original);
+    await writeFile(reportFile, reportBytes);
+  }
 });
 
 test('migration removes only the selected game legacy ZIPs and preserves Unity and unrelated files', async () => {

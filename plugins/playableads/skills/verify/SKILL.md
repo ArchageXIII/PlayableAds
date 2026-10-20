@@ -13,6 +13,8 @@ Use `npm.cmd` in PowerShell and `npm` elsewhere. For local QA or pending destina
 
 Inspect portrait/landscape play, rotation, hidden-state pausing, replay and explicit CTA dispatch through the available host harness. Report tests that could not be run. Validate actual Unity HTML and Google ZIP contents, not merely development pages. Read `dist/<id>/report.json` for mode, artifact paths, byte sizes, hashes and check results. Distinguish intercepted SDK dispatch from navigation blocked in a platform preview and an actually verified destination.
 
+If the checkout supports embedded manifests, read its `docs/export-manifest.md` and use its verifier. Manifests are automatic; on such checkouts, rebuild older exports with missing manifests and fix the source/build cause of integrity or identity failures rather than patching the manifest. Google preview/release artifact hashes differ because their embedded modes differ. The manifest content hash excludes the manifest comment; use the report's full artifact hash for platform evidence. A valid unsigned manifest establishes neither trusted origin nor compliance by itself: retain independent technical checks and pending platform acceptance. Older checkouts may lack manifests; do not silently upgrade them or claim they perform these checks.
+
 ## Release intent
 
 If release verification is requested, check the brief against supplied real app/store configuration, target OS and campaign intent. Unknown material details stay **pending**: preview checks can continue but must not be presented as release qualification. Do not fabricate URLs or silently replace release output with preview output; run the full preview suite before the final requested release build.

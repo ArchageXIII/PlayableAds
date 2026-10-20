@@ -13,6 +13,8 @@ For a new game, use the checkout's scaffolder with a unique id and the closest `
 
 Implement meaningful checks for the requested mechanic and an exported-game smoke test for a new game. Inspect actual portrait and landscape previews using available browser tooling. Run the checks specified by the checkout; build previews explicitly with `--mode preview`, verify them, and exercise the exported artifacts. Existing reference-game tests do not prove a newly authored game works.
 
+If the checkout documents embedded manifests in `docs/export-manifest.md`, its exporter adds them automatically. Rebuild after edits; do not hand-edit the exported HTML or manifest to repair verification failures. No manifest flag or game-level configuration is needed. Read that document when investigating manifest errors or upload integration. Older checkouts may lack this capability; follow their documented workflow without silently upgrading them.
+
 Fix actual failures without weakening validators. Keep preview instrumentation outside shipping code. Summarize changed files, the actual visual and automated checks, and remaining destination/device/platform work. Follow `docs/platform-checks.md` before describing anything as release-ready. Do not upload creatives, host previews or launch campaigns as part of authoring.
 
 

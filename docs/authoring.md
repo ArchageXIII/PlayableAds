@@ -23,7 +23,7 @@ Before release, compare the completed brief, supplied release configuration and 
 
 Use `build --platform google --mode preview` for one universal Google ZIP, or `build --platform unity --os android,ios --mode preview` for Unity HTMLs. Include `--game <id>` (or `--all`) with these commands. The default `--platform all` builds both profiles, with `--os` selecting Unity targets only. Google-only builds reject `--os` and do not read Unity release configuration, even in release mode.
 
-Google's output is `dist/<id>/google/playable.zip`; Unity's is `dist/<id>/<os>/unity/index.html`. Schema-2 reports describe only the latest build selection. Rebuild schema-1 reports. Verification accepts `--game`/`--all`, not build-selection flags. Google preview/release bytes may be identical; campaign setup and actual destination checks remain separate from build mode.
+Google's output is `dist/<id>/google/playable.zip`; Unity's is `dist/<id>/<os>/unity/index.html`. Schema-2 reports describe only the latest build selection. Rebuild schema-1 reports. Verification accepts `--game`/`--all`, not build-selection flags. All exports automatically carry an [embedded manifest](export-manifest.md); rebuild older exports without one. Google preview/release bytes differ because the manifest records their mode; campaign setup and actual destination checks remain separate from build mode.
 
 ## Runtime authoring
 

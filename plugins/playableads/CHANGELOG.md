@@ -1,5 +1,10 @@
 # PlayableAds plugin changelog
 
+## 0.2.1
+
+- Authoring and verification guidance for automatic export manifests on supporting checkouts.
+- Rebuild missing or invalid manifests; distinguish content hashes from complete artifact hashes and unsigned metadata from independent compliance checks.
+
 ## 0.2.0
 
 - Universal Google ZIP guidance, platform-selective builds and schema-2 report migration.

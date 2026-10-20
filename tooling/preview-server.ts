@@ -50,7 +50,7 @@ export async function startPreview(port: number, selectedGame?: string) {
               if (!['android', 'ios'].includes(os)) throw new Error('Invalid Unity preview OS.');
               target = { platform, os, storeUrl: PREVIEW_STORE_URLS[os] };
             } else target = { platform };
-            const built = await compileGame(game, target);
+            const built = await compileGame(game, target, 'preview');
             res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(built.html); return;
           }
           if (url.pathname === '/api/report') { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(await verifyGame(game))); return; }

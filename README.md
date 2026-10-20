@@ -99,7 +99,9 @@ A combined build for both Unity operating systems produces three artifacts:
 
 Reports include sizes, asset contributions, SHA-256 hashes, source fingerprints, build mode, local checks, and pending platform acceptance. Verification rechecks the files and reproduces their bytes from current sources; stale or edited artifacts fail. The 4,500,000-byte ceiling applies to HTML as well as ZIP output. This is our internal budget, below published platform limits.
 
-**Unity preview builds use intentionally invalid sample destinations for intercepted local CTA testing.** Google embeds no OS or destination; its preview and release ZIPs can have identical bytes, while report modes remain distinct. Neither local validation nor release mode establishes campaign routing or platform acceptance.
+Every exported ad automatically includes a versioned manifest in a non-rendered HTML comment, identifying its claimed toolkit, game, platform, mode and content hash. Google ZIPs still contain only `index.html`. Verification requires the manifest and checks its integrity and identity against the report; rebuild older exports that lack it. The manifest adds no runtime behaviour or tracking requests. See the [format, reusable verifier and upload-service guidance](docs/export-manifest.md). It is unsigned metadata, not proof of trusted origin or platform approval.
+
+**Unity preview builds use intentionally invalid sample destinations for intercepted local CTA testing.** Google embeds no OS or destination; its preview and release ZIPs now differ because the manifest records build mode. Repeated builds with identical inputs and mode remain reproducible. Neither local validation nor release mode establishes campaign routing or platform acceptance.
 
 For Unity or combined release builds, copy `release.config.example.json` to the ignored `release.config.json`, replace sample values with your app's actual URLs, then run:
 

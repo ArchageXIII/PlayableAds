@@ -3,13 +3,16 @@ import { parse as parseJs } from 'acorn';
 import { full } from 'acorn-walk';
 import { unzipSync, strFromU8 } from 'fflate';
 import { EXIT_API, MAX_BYTES } from './config';
+import { verifyManifest, type ManifestExpectation } from './manifest';
 
 export interface Validation { ok: boolean; errors: string[]; checks: string[] }
 const voidTags = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
 const forbiddenTags = new Set(['iframe', 'frame', 'frameset', 'object', 'embed', 'video', 'link', 'base']);
 const forbiddenNames = new Set(['fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'Worker', 'SharedWorker', 'localStorage', 'sessionStorage', 'indexedDB', 'caches', 'eval', 'Function']);
-export function validateHtml(bytes: Uint8Array, platform: 'unity' | 'google'): Validation {
+export function validateHtml(bytes: Uint8Array, platform: 'unity' | 'google', expected: ManifestExpectation = {}): Validation {
   const errors: string[] = [];
+  const manifest = verifyManifest(bytes, { ...expected, platform });
+  errors.push(...manifest.errors);
   const html = Buffer.from(bytes).toString('utf8');
   if (!Buffer.from(html, 'utf8').equals(Buffer.from(bytes))) errors.push('Invalid UTF-8 encoding.');
   if (bytes.length > MAX_BYTES) errors.push('HTML exceeds the 4.5 MB toolkit budget.');
@@ -75,9 +78,9 @@ export function validateHtml(bytes: Uint8Array, platform: 'unity' | 'google'): V
   if (inlineScripts !== 1) errors.push('Exactly one inline game script is required.');
   if (platform === 'unity' && (!hasUnityHost || exitScripts)) errors.push('Unity export must use its MRAID adapter only.');
   if (platform === 'google' && (!hasGoogleHost || exitScripts !== 1)) errors.push('Google export requires its ExitApi adapter and one literal SDK script in the head.');
-  return { ok: !errors.length, errors: [...new Set(errors)], checks: ['UTF-8 and explicit HTML structure', 'Dual orientation metadata', 'Embedded resources and host adapter', 'ES5 syntax and prohibited APIs', 'No development code', '4.5 MB HTML budget'] };
+  return { ok: !errors.length, errors: [...new Set(errors)], checks: ['Manifest schema, target and content integrity', 'UTF-8 and explicit HTML structure', 'Dual orientation metadata', 'Embedded resources and host adapter', 'ES5 syntax and prohibited APIs', 'No development code', '4.5 MB HTML budget'] };
 }
-export function validateZip(bytes: Uint8Array): Validation {
+export function validateZip(bytes: Uint8Array, expected: ManifestExpectation = {}): Validation {
   const errors: string[] = [];
   if (bytes.length > MAX_BYTES) errors.push('ZIP exceeds the 4.5 MB toolkit budget.');
   try {
@@ -116,7 +119,7 @@ export function validateZip(bytes: Uint8Array): Validation {
       let crc = 0xffffffff;
       for (const byte of entries['index.html']) { crc ^= byte; for (let i = 0; i < 8; i++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0); }
       if (((crc ^ 0xffffffff) >>> 0) !== archive.readUInt32LE(central + 16)) throw new Error('ZIP entry CRC mismatch.');
-      const validation = validateHtml(entries['index.html'], 'google');
+      const validation = validateHtml(entries['index.html'], 'google', expected);
       errors.push(...validation.errors);
       // Force decoding as well as byte validation to exercise the stored entry.
       if (!strFromU8(entries['index.html'])) errors.push('Empty ZIP entry.');

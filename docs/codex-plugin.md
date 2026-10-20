@@ -66,9 +66,11 @@ Uninstalling does not delete your toolkit checkout or games. A catalog committed
 
 Version 0.2.0 checks the selected checkout's documented build capabilities before using `--platform google|unity|all`. It does not upgrade old projects automatically. Google produces one `dist/<id>/google/playable.zip`; Unity retains OS-specific HTML. Rebuild older reports to migrate to schema 2. Google-only release builds do not require Unity store URLs, but app/OS/destination setup and manual checks still belong to each campaign.
 
+Version 0.2.1 adds authoring and verification guidance for [automatic export manifests](export-manifest.md) when supported by the selected checkout. It distinguishes manifest integrity from independent compliance checks and the complete artifact hashes used for platform evidence. Updating the plugin alone does not add manifests to an older toolkit.
+
 ## Maintenance and validation
 
-The current plugin version is `0.2.0`. Bump its semantic version whenever packaged skills or metadata change and record the change in the [plugin changelog](../plugins/playableads/CHANGELOG.md). Keep the plugin's bundled MIT license in sync with the repository license. No toolkit runtime is copied into the plugin.
+The current plugin version is `0.2.1`. Bump its semantic version whenever packaged skills or metadata change and record the change in the [plugin changelog](../plugins/playableads/CHANGELOG.md). Keep the plugin's bundled MIT license in sync with the repository license. No toolkit runtime is copied into the plugin.
 
 `npm test` includes plugin contract checks, which also run in GitHub Actions through `npm run check`. They check manifest fields, opt-in marketplace policy, path containment, skill frontmatter, onboarding, the license and the packaged-file inventory. They do not prove model behaviour or client compatibility.
 
